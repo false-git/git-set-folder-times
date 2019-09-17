@@ -1,0 +1,30 @@
+#!/usr/bin/perl -w
+use strict;
+
+sub set_folder_times {
+    my ($folder_path) = @_;
+    opendir my $dh, $folder_path or die;
+    my $mtime_max = 0;
+    while (my $file = readdir $dh) {
+	next if $file eq "." || $file eq "..";
+	my $path = $folder_path . "/" . $file;
+	my $mtime;
+	if (-d $path) {
+	    $mtime = set_folder_times($path);
+	} else {
+	    my @stat = stat $path;
+	    $mtime = $stat[9];
+	}
+	if ($mtime > $mtime_max) {
+	    $mtime_max = $mtime;
+	}
+    }
+    utime $mtime_max, $mtime_max, $folder_path;
+    return $mtime_max;
+}
+
+if ($ENV{GIT_DIR}) {
+	chdir($ENV{GIT_DIR}) or die $!;
+}
+
+set_folder_times(".");
